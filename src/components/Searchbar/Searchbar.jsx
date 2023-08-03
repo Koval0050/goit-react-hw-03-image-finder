@@ -1,39 +1,53 @@
-import React, { PureComponent } from 'react';
+import React from 'react';
 
-export default class Searchbar extends PureComponent {
+import PropTypes from 'prop-types';
+
+import { StyledFilter } from './Styled';
+
+class Searchbar extends React.Component {
   state = {
-    value: '',
+    searchValue: '',
   };
 
-  handleValue = event => {
-    this.setState({ value: event.target.value });
+  handleSubmit = e => {
+    e.preventDefault();
+
+    this.props.onSubmit(this.state.searchValue);
+    this.setState(() => ({ searchValue: '' }));
   };
 
-  handleSubmit = event => {
-    event.preventDefault();
-    this.props.handleQueryOnSubmit(this.state.value); // Передаємо значення інпута в обробник handleQueryOnSubmit
-    this.setState({value:''})
+  handleSearchTermChange = ({ target: { value, name } }) => {
+    this.setState(() => ({ [name]: value }));
+  };
+
+  static propTypes = {
+    onSubmit: PropTypes.func.isRequired,
   };
 
   render() {
+    const { searchValue } = this.state;
+
     return (
-      <header className="Searchbar">
+      <StyledFilter>
         <form className="SearchForm" onSubmit={this.handleSubmit}>
           <button type="submit" className="SearchForm-button">
-            <span className="button-label">Search</span>
+            <span className="SearchForm-button-label">Search</span>
           </button>
 
           <input
-            onChange={this.handleValue}
-            value={this.state.value}
+            onChange={this.handleSearchTermChange}
             className="SearchForm-input"
             type="text"
             autoComplete="off"
             autoFocus
+            name="searchValue"
+            value={searchValue}
             placeholder="Search images and photos"
           />
         </form>
-      </header>
+      </StyledFilter>
     );
   }
 }
+
+export default Searchbar;

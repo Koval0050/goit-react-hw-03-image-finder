@@ -1,112 +1,63 @@
-// ImageGallery.js
-import React, { PureComponent } from 'react';
+import React from 'react';
+
 import PropTypes from 'prop-types';
-import { Notify } from 'notiflix';
-import ImageGalleryItem from 'components/ImageGalleryItem/ImageGalleryItem';
-import { fetchImages } from 'api';
-import Button from 'components/Button/Button';
+
 import Loader from 'components/Loader/Loader';
-import Modal from 'components/Modal/Modal';
-class ImageGallery extends PureComponent {
-  state = {
-    images: [],
-    currentPage: 1,
-    isFirstSearch: true, // Додали стан для відстеження першого пошуку
-    loading: false,
-    showModal: false,
-    imageUrl: '',
-  };
 
-  componentDidMount() {
-    this.fetchImagesByQuery(this.props.searchQuery);
-  }
+import { StyledGallery, StyledGalletyItem } from './Styled';
 
-  componentDidUpdate(prevProps) {
-    if (this.props.searchQuery !== prevProps.searchQuery) {
-      this.fetchImagesByQuery(this.props.searchQuery);
-    }
-  }
-
-  fetchImagesByQuery = (query, page = 1) => {
-    if (query.trim() === '') {
-      this.setState({ images: [], currentPage: 1, isFirstSearch: true });
-    } else {
-      this.setState({ loading: true });
-      fetchImages(query, page)
-        .then(data => {
-          if (data.length === 0) {
-            this.setState({
-              isFirstSearch: true,
-              loading: false,
-            });
-            throw new Error();
-          }
-          this.setState(prevState => ({
-            images: page === 1 ? data : [...prevState.images, ...data], // Add fetched images to state based on the page value
-            currentPage: page, // Set the currentPage to the current page value
-            isFirstSearch: false,
-            loading: false,
-          }));
-        })
-        .catch(error => {
-          setTimeout(() => {
-            Notify.failure(
-              'Упс, схоже, зображень з таким запитом не знайдено.'
+function ImageGallery({ images = [], isFetching, error, openFullScreenMode }) {
+  const showLoader = isFetching && images?.length !== 0;
+  return (
+    <>
+      <StyledGallery>
+        {images?.length > 0 &&
+          images.map(image => {
+            return (
+              <ImageGalleryItem
+                openFullScreenMode={openFullScreenMode}
+                key={image.id}
+                {...image}
+              />
             );
-            this.setState({ loading: false });
-          }, 1500);
-        });
-    }
-  };
-
-  handleLoadMore = () => {
-    const { searchQuery } = this.props;
-    const { currentPage } = this.state;
-    this.fetchImagesByQuery(searchQuery, currentPage + 1); // Increment currentPage to fetch the next page
-  };
-
-  toggleModal = (imageUrl = '') => {
-    this.setState(prevState => ({
-      showModal: !prevState.showModal,
-      imageUrl: imageUrl, // Set the imageUrl state to the passed imageUrl
-    }));
-  };
-
-  render() {
-    const { images, isFirstSearch, loading, showModal } = this.state;
-    return (
-      <div>
-        <ul className="ImageGallery">
-          {images.map(image => (
-            <ImageGalleryItem
-              key={image.id}
-              onClick={() => this.toggleModal(image.webformatURL)}
-              imageUrl={image.webformatURL}
-            />
-          ))}
-        </ul>
-        {!isFirstSearch ? (
-          loading ? (
-            <Loader /> // Відображаємо Loader під час завантаження
-          ) : (
-            <Button onClick={this.handleLoadMore} />
-          )
-        ) : (
-          ''
-        )}
-        {showModal && (
-          <Modal
-            imageUrl={this.state.imageUrl}
-            onClose={() => this.toggleModal()}
-          /> // Pass the toggleModal function as onClose
-        )}
-      </div>
-    );
-  }
+          })}
+      </StyledGallery>
+      {!!error && <p>{error.message}</p>}
+      {showLoader && <Loader />}
+    </>
+  );
 }
 
+function ImageGalleryItem({
+  webformatURL,
+  tags = '',
+  largeImageURL,
+  openFullScreenMode,
+}) {
+  return (
+    <StyledGalletyItem onClick={() => openFullScreenMode(largeImageURL, tags)}>
+      <img className="ImageGalleryItem-image" src={webformatURL} alt={tags} />
+    </StyledGalletyItem>
+  );
+}
+
+ImageGalleryItem.propTypes = {
+  openFullScreenMode: PropTypes.func.isRequired,
+  webformatURL: PropTypes.string.isRequired,
+  tags: PropTypes.string.isRequired,
+};
+
 ImageGallery.propTypes = {
-  searchQuery: PropTypes.string.isRequired,
+  images: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number,
+      largeImageURL: PropTypes.string,
+      webformatURL: PropTypes.string,
+    })
+  ),
+  isFetching: PropTypes.bool.isRequired,
+  error: PropTypes.string,
+  openFullScreenMode: PropTypes.func.isRequired,
 };
 
 export default ImageGallery;
